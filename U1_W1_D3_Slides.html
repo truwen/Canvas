@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>U1_W1_D2_Slides – Click-To-Advance, No-Scroll</title>
+<style>
+  :root{
+    --bg:#0b1220;--ink:#0f172a;--card:#ffffff;--muted:#475569;--accent:#0b3954;--ring:#e2e8f0;--blue:#1e3a8a;--green:#047857;--amber:#b45309;--red:#b91c1c;--purple:#7c3aed;
+    --champs-c:#2563eb;--champs-h:#16a34a;--champs-a:#d97706;--champs-m:#be123c;--champs-p:#7c3aed;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif}
+  .deck{display:grid;grid-template-rows:auto auto 1fr auto;min-height:100vh;background:var(--card)}
+  /* Status */
+  .status-bar{display:flex;justify-content:space-between;align-items:center;padding:8px 16px;background:var(--card);border-bottom:1px solid var(--ring)}
+  .status-bar .title{font-weight:700}
+  .status-bar .progress{position:relative;width:160px;height:6px;background:var(--ring);border-radius:3px}
+  .status-bar .progress-bar{position:absolute;height:100%;background:var(--accent);border-radius:3px}
+  /* CHAMPS – LARGE */
+  .champs-bar{display:flex;justify-content:center;align-items:stretch;gap:12px;background:#f1f5f9;padding:14px 12px;border-bottom:2px solid var(--ring);flex-wrap:wrap}
+  .champs-item{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;background:var(--card);border-radius:14px;padding:16px 18px;width:220px;text-align:center;border:2px solid var(--ring);border-left-width:8px;box-shadow:0 8px 20px rgba(0,0,0,.06)}
+  .champs-header{display:flex;align-items:center;gap:8px;font-weight:900;font-size:1.75rem;letter-spacing:.025em}
+  .champs-desc{font-size:1.3rem;color:var(--muted);padding-top:8px;font-weight:600}
+  #champs-item-c{border-left-color:var(--champs-c)} #champs-item-c .champs-header{color:var(--champs-c)}
+  #champs-item-h{border-left-color:var(--champs-h)} #champs-item-h .champs-header{color:var(--champs-h)}
+  #champs-item-a{border-left-color:var(--champs-a)} #champs-item-a .champs-header{color:var(--champs-a)}
+  #champs-item-m{border-left-color:var(--champs-m)} #champs-item-m .champs-header{color:var(--champs-m)}
+  #champs-item-p{border-left-color:var(--champs-p)} #champs-item-p .champs-header{color:var(--champs-p)}
+
+  /* STAGE: fixed viewport, no-scroll slides */
+  .stage{position:relative;display:flex;align-items:center;justify-content:center;height:100%;overflow:hidden;background:var(--card)}
+  /* The visual slide frame keeps a 16:9 area that scales to fit */
+  .slide-frame{position:relative;aspect-ratio:16/9;width:min(96vw,1200px);max-height:calc(100% - 8px);background:var(--card);border-radius:10px}
+
+  /* Slide content fits inside the frame without scroll; fonts scale responsively */
+  .slide{position:absolute;inset:0;display:none;flex-direction:column;justify-content:center;align-items:center;padding:2rem;overflow:hidden}
+  .slide.active{display:flex}
+  .slide-content{max-width:1040px;max-height:100%;width:100%;text-align:center;margin:auto;display:flex;flex-direction:column;justify-content:flex-start;gap:1rem;overflow:hidden}
+  .slide-content > div:last-child{overflow:hidden}
+  .slide h1,.slide h2,.slide h3{margin:0 0 .8rem;color:var(--accent);text-align:center;display:flex;align-items:center;justify-content:center;gap:.75rem}
+  .slide h1{font-size:clamp(1.8rem,4.5vw,3.2rem)} .slide h2{font-size:clamp(1.4rem,3.6vw,2.4rem)} .slide h3{font-size:clamp(1.1rem,3vw,1.8rem)}
+  .slide-body{font-size:clamp(1rem,2.6vw,1.4rem);line-height:1.5;text-align:center;overflow:hidden}
+  .slide-body ul,.slide-body ol{display:inline-block;text-align:left;margin-left:2rem}
+  .lt-title{color:var(--blue)!important}.lo-title{color:var(--green)!important}.sc-title{color:var(--ink)!important}
+  mark{background:#fef08a;padding:2px 6px;border-radius:4px}
+
+  /* Boxes */
+  .box{border-radius:12px;padding:1rem;margin-top:.25rem;font-weight:500}
+  .box-green{background:#dcfce7;border:1px solid #86efac}
+  .box-yellow{background:#fefce8;border:1px solid #fef08a}
+  .box-red{background:#fee2e2;border:1px solid #fca5a5}
+  .box-blue{background:#eff6ff;border:1px solid #dbeafe}
+
+  /* Controls */
+  .controls{display:flex;justify-content:center;align-items:center;padding:10px;gap:8px;flex-wrap:wrap;background:var(--card);border-top:1px solid var(--ring)}
+  .control-group{display:flex;align-items:center;gap:8px;padding:0 12px;border-right:2px solid var(--ring)}
+  .control-group:last-child{border-right:none}
+  button{font-size:1rem;padding:10px 15px;border-radius:8px;border:none;cursor:pointer}
+  .nav-btn{background:var(--blue);color:#fff}
+  .timer-btn{background:var(--accent);color:#fff}
+  .name-btn{background:var(--green);color:#fff;padding:8px 12px;font-size:.9rem}
+  .remove-btn{background:var(--red)}
+  .time-input,#nameInput,#periodSelect{border:1px solid var(--ring);padding:8px;border-radius:6px;background:#fff;text-align:center;font-size:.9rem}
+  .time-input{width:60px}
+  .timer-display{font-family:monospace;font-size:1.2rem;font-weight:700;background:var(--ink);color:var(--card);padding:4px 10px;border-radius:6px}
+
+  /* Stations + Roles */
+  .station-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;text-align:left;font-size:1.05rem}
+  .station-card{border:2px solid;border-radius:10px;padding:1rem;background:#fff}
+  .station-card h3{font-size:1.25rem;margin-bottom:.4rem;padding-bottom:.4rem;border-bottom:1px solid}
+  .station-card ul{list-style-position:inside;padding-left:0}
+  .roles-row{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
+  .role-badge{display:flex;align-items:center;gap:.5rem;padding:.5rem .75rem;border-radius:999px;border:1px solid var(--ring);background:#f8fafc;font-weight:700}
+  .role-badge small{font-weight:500;color:var(--muted)}
+
+  /* Modal (Role Cards) */
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:300}
+  .modal.open{display:flex}
+  .modal-card{background:#fff;border-radius:16px;max-width:1100px;width:min(95vw,1100px);max-height:90vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.35);padding:1.25rem}
+  .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem}
+  .modal-title{font-size:1.4rem;font-weight:800}
+  .close-x{background:#111827;color:#fff;border-radius:8px;padding:.4rem .7rem;cursor:pointer}
+  .modal-footer{display:flex;justify-content:flex-end;gap:.5rem;margin-top:.75rem}
+  #rolesModal .role-card{border:1px solid var(--ring);border-radius:12px;padding:1rem;background:#fff}
+  #rolesModal .role-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem}
+  #rolesModal .role-card ul{padding-left:1.25rem;margin-left:.25rem}
+  #rolesModal .role-card li{margin-bottom:.35rem}
+  .frame{font-family:ui-monospace,Consolas,monospace;font-size:1rem;background:#111827;color:#f9fafb;padding:.6rem;border-radius:8px;display:block;margin:.4rem 0}
+  @media print{body *{visibility:hidden} #rolesModal, #rolesModal *{visibility:visible} #rolesModal{position:absolute;left:0;top:0;width:100%;background:#fff;color:#000;box-shadow:none} .modal-card{box-shadow:none}}
+
+  /* Roster Modal */
+  .roster-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;z-index:290;pointer-events:none}
+  .roster-backdrop.open{display:block;pointer-events:auto}
+  .roster-manager{display:none;position:fixed;inset:0;align-items:center;justify-content:center;z-index:310}
+  .roster-manager.open{display:flex}
+  .roster-card{background:var(--card);border:1px solid var(--ring);border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.35);padding:1rem;width:min(92vw,420px);max-height:80vh;display:flex;flex-direction:column;gap:.75rem}
+  .roster-header{display:flex;align-items:center;justify-content:space-between}
+  .roster-header h4{margin:0}
+  #rosterList{list-style:none;padding:0;margin:0;border:1px solid var(--ring);border-radius:6px;overflow:auto;max-height:50vh}
+  #rosterList li{padding:6px 10px;cursor:pointer}
+  #rosterList li.selected{background:#dbeafe}
+  .roster-actions{display:flex;gap:.5rem;justify-content:flex-end}
+
+  /* Overlays */
+  .animation-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:200;opacity:0;transition:opacity .3s}
+  .animation-overlay.visible{display:flex;opacity:1}
+  .spinner{width:220px;height:220px;border-radius:50%;background:conic-gradient(from 90deg at 50% 50%,#f44336,#ff9800,#ffeb3b,#4caf50,#2196f3,#9c27b0,#f44336);animation:spin 1s linear infinite}
+  .winner-display{position:absolute;color:#fff;font-size:3rem;font-weight:700;text-shadow:2px 2px 4px #000;display:none}
+  .confetti-container{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+  .confetti{position:absolute;width:10px;height:10px;background:red;opacity:0;animation:fall linear infinite}
+
+  .stop-sign-container{animation:stop-pulse 1s infinite}
+  .stop-sign-border{position:relative;width:250px;height:250px;background:#fff;clip-path:polygon(30% 0,70% 0,100% 30%,100% 70%,70% 100%,30% 100%,0 70%,0 30%);border-radius:8px;display:flex;justify-content:center;align-items:center}
+  .stop-sign-inner{width:220px;height:220px;background:var(--red);clip-path:polygon(30% 0,70% 0,100% 30%,100% 70%,70% 100%,30% 100%,0 70%,0 30%);display:flex;justify-content:center;align-items:center}
+  .stop-text{color:#fff;font-size:2.5rem;font-weight:700;text-align:center}
+  .led{position:absolute;width:10px;height:10px;background:#9ca3af;border-radius:50%;animation:blink 1.6s infinite}
+  @keyframes blink{50%{background:#f87171;box-shadow:0 0 5px #f87171,0 0 8px #f87171}}
+  @keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+  @keyframes fall{0%{transform:translateY(-10vh) translateX(0) rotate(0);opacity:1}100%{transform:translateY(110vh) translateX(var(--x)) rotate(720deg);opacity:0}}
+  @keyframes stop-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+
+  /* Floating Big Timer */
+  .timer-fab{position:fixed;top:10px;right:12px;z-index:350;display:none;align-items:center;justify-content:center;background:#0f172a;color:#ffffff;border-radius:14px;padding:.35rem .65rem;font-family:ui-monospace,Consolas,monospace;font-weight:800;font-size:clamp(1.6rem,4.5vw,3rem);line-height:1;box-shadow:0 10px 30px rgba(0,0,0,.35), inset 0 0 0 2px rgba(255,255,255,.08);transition:transform .2s ease, background-color .2s ease, opacity .2s ease}
+  .timer-fab.active{display:flex}
+  .timer-fab.warn{background:#b91c1c; animation:pulseWarn 1s infinite}
+  .timer-fab.ending{animation:flashEnd .3s steps(2,end) 6}
+  @keyframes pulseWarn{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+  @keyframes flashEnd{0%{filter:brightness(1)}50%{filter:brightness(1.6)}100%{filter:brightness(1)}}
+
+  /* Click Navigation Zones (overlay over the slide frame) */
+  .nav-zone{position:absolute;top:0;bottom:0;width:50%;z-index:20;cursor:pointer}
+  .nav-zone.left{left:0}
+  .nav-zone.right{right:0}
+  .nav-zone:hover{background:rgba(0,0,0,.02)}
+</style>
+</head>
+<body>
+  <!-- Animations -->
+  <div id="animation-overlay" class="animation-overlay">
+    <div id="spinner" class="spinner"></div>
+    <div id="winner-display" class="winner-display"></div>
+    <div id="confetti-container" class="confetti-container"></div>
+  </div>
+  <div id="timesUpOverlay" class="animation-overlay">
+    <div class="stop-sign-container">
+      <div class="stop-sign-border"><div class="stop-sign-inner"><div class="stop-text">TIME'S<br>UP!</div></div></div>
+    </div>
+  </div>
+
+  <!-- Role Cards Modal (printable) -->
+  <div id="rolesModal" class="modal" aria-hidden="true" role="dialog" aria-label="Role cards">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">Team Role Cards (printable)</div>
+        <button class="close-x" id="closeRoles">Close</button>
+      </div>
+      <div class="role-grid" id="roleCardsContainer"></div>
+      <div class="modal-footer">
+        <button id="printRolesBtn" class="name-btn" style="background:#111827">🖨 Print Role Cards</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Roster Modal -->
+  <div id="rosterBackdrop" class="roster-backdrop"></div>
+  <div id="rosterManager" class="roster-manager" role="dialog" aria-modal="true" aria-label="Class roster">
+    <div class="roster-card">
+      <div class="roster-header">
+        <h4>Class Roster</h4>
+        <button id="closeRosterBtn" class="close-x">×</button>
+      </div>
+      <ul id="rosterList"></ul>
+      <div class="roster-actions">
+        <button id="removeSelectedBtn" class="name-btn remove-btn">Remove</button>
+        <button id="clearAllBtn" class="name-btn remove-btn">Clear All</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating big timer -->
+  <div id="timerFab" class="timer-fab" aria-live="polite">0:00</div>
+
+  <div class="deck">
+    <div class="status-bar">
+      <div class="title" id="status-title">Lesson Title</div>
+      <div class="progress"><div id="progress-bar" class="progress-bar"></div></div>
+    </div>
+
+    <div class="champs-bar">
+      <div id="champs-item-c" class="champs-item"><div class="champs-header">C</div><div id="champs-c" class="champs-desc">--</div></div>
+      <div id="champs-item-h" class="champs-item"><div class="champs-header">H</div><div id="champs-h" class="champs-desc">--</div></div>
+      <div id="champs-item-a" class="champs-item"><div class="champs-header">A</div><div id="champs-a" class="champs-desc">--</div></div>
+      <div id="champs-item-m" class="champs-item"><div class="champs-header">M</div><div id="champs-m" class="champs-desc">--</div></div>
+      <div id="champs-item-p" class="champs-item"><div class="champs-header">P</div><div id="champs-p" class="champs-desc">--</div></div>
+    </div>
+
+    <div class="stage">
+      <div class="slide-frame">
+        <!-- Click navigation zones -->
+        <div class="nav-zone left" id="zoneLeft" title="Previous"></div>
+        <div class="nav-zone right" id="zoneRight" title="Next"></div>
+        <main id="slide-container"></main>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="control-group">
+        <button id="homeBtn" class="nav-btn">Home</button>
+        <button id="prevBtn" class="nav-btn">Prev</button>
+        <button id="nextBtn" class="nav-btn">Next</button>
+      </div>
+      <div class="control-group">
+        <button id="timerToggleBtn" class="timer-btn">Slide Time</button>
+        <input type="number" id="customMinutesInput" class="time-input" min="0" max="99" value="5" placeholder="M" />
+        <input type="number" id="customSecondsInput" class="time-input" min="0" max="59" value="0" placeholder="S" />
+        <button id="startPauseBtn" class="timer-btn">Start</button>
+        <button id="resetBtn" class="timer-btn">Reset</button>
+        <div id="timerDisplay" class="timer-display">0:00</div>
+      </div>
+      <div class="control-group">
+        <select id="periodSelect"><option value="1">P1</option><option value="2">P2</option><option value="3">P3</option><option value="4">P4</option><option value="5">P5</option><option value="6">P6</option><option value="7">P7</option></select>
+        <input type="text" id="nameInput" placeholder="Add name...">
+        <button id="addNameBtn" class="name-btn">Add</button>
+        <button id="pickNameBtn" class="name-btn">Cold Call</button>
+        <div id="pickedName">...</div>
+        <button id="manageRosterBtn" class="name-btn" title="Open roster">Manage</button>
+        <button id="openRolesBtn" class="name-btn" title="Show printable role cards">Role Cards</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+// ===== ROLE DEFINITIONS =====
+const ROLE_DEFS = [
+  { key:'Builder', color:'#1e3a8a', duties:[ 'Lead hands-on build steps','Request parts by name/number','Pause for QC at each step' ], says:[ '"Please find <mark>[part]</mark> for step <mark>[#]</mark>."','"QC, verify step <mark>[#]</mark>?"','"We completed <mark>[step]</mark>."' ] },
+  { key:'Navigator', color:'#d97706', duties:[ 'Read diagram aloud','Call out part names/#/qty','Track completed steps' ], says:[ '"Next we need <mark>[part]</mark> to <mark>[action]</mark>."' ] },
+  { key:'Coder/Driver', color:'#047857', duties:[ 'Verify ports & device names','Load/test code; adjust motors','Run safe tests; report issues' ], says:[ '"I coded <mark>[x]</mark> because <mark>[y]</mark>."' ] },
+  { key:'Reporter', color:'#7c3aed', duties:[ 'Photos at milestones','Timestamp notes & results','Prepare share-out' ], says:[ '"It did <mark>[__]</mark>; next <mark>[__]</mark>."' ] }
+];
+
+// ===== SLIDES (no-scroll friendly) =====
+let lessonContent = [
+  { title:'Entry Task', timer:180, header:'<h2>Entry Task (3:00)</h2>', body:`<div class="box box-yellow">In your notebook, write one sentence describing your role\'s main job today.</div>
+  <div class="roles-row" style="margin-top:.5rem;justify-content:center">
+    <span class="role-badge" style="border-color:#1e3a8a"><span style="width:.75rem;height:.75rem;border-radius:999px;background:#1e3a8a;display:inline-block"></span>Builder</span>
+    <span class="role-badge" style="border-color:#d97706"><span style="width:.75rem;height:.75rem;border-radius:999px;background:#d97706;display:inline-block"></span>Navigator</span>
+    <span class="role-badge" style="border-color:#047857"><span style="width:.75rem;height:.75rem;border-radius:999px;background:#047857;display:inline-block"></span>Coder/Driver</span>
+    <span class="role-badge" style="border-color:#7c3aed"><span style="width:.75rem;height:.75rem;border-radius:999px;background:#7c3aed;display:inline-block"></span>Reporter</span>
+  </div>
+  <div class="box box-blue" style="margin-top:.4rem"><b>Sentence frame:</b> “As the <mark>[role]</mark>, my job is to <mark>[action]</mark> so that <mark>[purpose]</mark>.”</div>
+  <div style="margin-top:.3rem"><button class="name-btn" onclick="document.getElementById('openRolesBtn').click()">🔎 View Role Cards</button></div>`, champs:{c:'Level 0: Silent',h:'Check your notebook',a:'Writing in notebook',m:'Stay in your seat',p:'Complete the prompt'} },
+
+  { title:'Team Roles — Entry Task Version', timer:60, header:'<h2>Team Roles — Entry Task Version</h2>', body:`<div class="station-grid" style="grid-template-columns:repeat(2,1fr)">
+    <div class="station-card" style="border-color:#1e3a8a"><h3 style="color:#1e3a8a">Builder</h3><ul><li>Assemble & connect parts</li><li>Align & tighten correctly</li><li>Pause for QC checks</li></ul><div class="box box-yellow" style="margin-top:.25rem"><em>Frame:</em> “As the <mark>Builder</mark>, my job is to <mark>__</mark> so that <mark>__</mark>.”</div></div>
+    <div class="station-card" style="border-color:#d97706"><h3 style="color:#d97706">Navigator</h3><ul><li>Read steps aloud</li><li>Call parts by name/number</li><li>Track completed steps</li></ul><div class="box box-yellow" style="margin-top:.25rem"><em>Frame:</em> “As the <mark>Navigator</mark>, my job is to <mark>__</mark> so that <mark>__</mark>.”</div></div>
+    <div class="station-card" style="border-color:#047857"><h3 style="color:#047857">Coder/Driver</h3><ul><li>Verify ports & devices</li><li>Load/test code safely</li><li>Report issues to team</li></ul><div class="box box-yellow" style="margin-top:.25rem"><em>Frame:</em> “As the <mark>Coder/Driver</mark>, my job is to <mark>__</mark> so that <mark>__</mark>.”</div></div>
+    <div class="station-card" style="border-color:#7c3aed"><h3 style="color:#7c3aed">Reporter</h3><ul><li>Take photos at milestones</li><li>Timestamp notes & results</li><li>Prep share‑out summary</li></ul><div class="box box-yellow" style="margin-top:.25rem"><em>Frame:</em> “As the <mark>Reporter</mark>, my job is to <mark>__</mark> so that <mark>__</mark>.”</div></div>
+  </div>
+  <div style="margin-top:.25rem"><button class="name-btn" onclick="document.getElementById('openRolesBtn').click()">🖨 Print / View Full Role Cards</button></div>`, champs:{c:'Level 1: Partner Whisper',h:'Ask team',a:'Assign roles',m:'Stay at table',p:'One sentence written'} },
+
+  { title:'Learning Target', header:'<h2 class="lt-title">Learning Target</h2>', body:'<p>I can <mark>use my team role</mark> to <mark>complete the station task</mark> and explain our progress.</p>', champs:{c:'Level 2: Choral Read',h:'Raise hand',a:'Read together',m:'Stay seated',p:'All voices'} },
+
+  { title:'Language Objective', header:'<h2 class="lo-title">Language Objective</h2>', body:'<p>I can <mark>use sentence frames</mark> to ask for parts, approve steps, and record decisions.</p><div class="box box-green"><ul><li>"Please find <mark>[part]</mark> for step <mark>[#]</mark>."</li><li>"I approve/need to fix step <mark>[#]</mark> because <mark>[reason]</mark>."</li><li>"We decided to <mark>[choice]</mark> because <mark>[evidence]</mark>."</li></ul></div>', champs:{c:'Level 2: Choral Read',h:'Raise hand',a:'Read together',m:'Stay seated',p:'Use frames'} },
+
+  { title:'Team Roles (Quick View)', timer:60, header:'<h2>Team Roles (Quick View)</h2>', body:'<div class="roles-row" style="justify-content:space-between"><span class="role-badge" style="border-color:#1e3a8a"><span style="width:.75rem;height:.75rem;border-radius:999px;background:#1e3a8a;display:inline-block"></span>Builder <small>build, align, tighten</small></span><span class="role-badge" style="border-color:#d97706"><span style="width:.75rem;height:.75rem;border-radius:999px;background:#d97706;display:inline-block"></span>Navigator <small>read, call parts</small></span><span class="role-badge" style="border-color:#047857"><span style="width:.75rem;height:.75rem;border-radius:999px;background:#047857;display:inline-block"></span>Coder/Driver <small>ports, test, adjust</small></span><span class="role-badge" style="border-color:#7c3aed"><span style="width:.75rem;height:.75rem;border-radius:999px;background:#7c3aed;display:inline-block"></span>Reporter <small>photo, notes, share</small></span></div><div class="box box-yellow" style="margin-top:.5rem"><b>Rotate roles each station.</b> Need details? Click <b>Role Cards</b> in the control bar.</div>', champs:{c:'Level 1: Partner Whisper',h:'Ask team',a:'Assign roles',m:'Stay at table',p:'All roles filled'} },
+
+  { title:'Team Roles — Details', timer:90, header:'<h2>Team Roles — Details</h2>', body:'<div class="station-grid" style="grid-template-columns:repeat(2,1fr)"><div class="station-card" style="border-color:#1e3a8a"><h3 style="color:#1e3a8a">Builder</h3><ul><li>Assemble & connect exactly as shown</li><li>Align axles/gears; check orientation</li><li>Tighten fasteners; pause for QC</li><li><em>Frame:</em> “I built <mark>__</mark> so it <mark>__</mark>.”</li></ul></div><div class="station-card" style="border-color:#d97706"><h3 style="color:#d97706">Navigator</h3><ul><li>Read diagram aloud & call parts</li><li>Point to cautions; track steps</li><li>Prefetch next-step parts</li><li><em>Frame:</em> “Next we need <mark>__</mark> to <mark>__</mark>.”</li></ul></div><div class="station-card" style="border-color:#047857"><h3 style="color:#047857">Coder/Driver</h3><ul><li>Verify ports & device names</li><li>Load/test code; adjust motors</li><li>Run safe tests; report issues</li><li><em>Frame:</em> “I coded <mark>__</mark> because <mark>__</mark>.”</li></ul></div><div class="station-card" style="border-color:#7c3aed"><h3 style="color:#7c3aed">Reporter</h3><ul><li>Photos at milestones; timestamp notes</li><li>Sketch wiring/gear train if needed</li><li>Write 2‑sentence update; prep share</li><li><em>Frame:</em> “It did <mark>__</mark>; next we will <mark>__</mark>.”</li></ul></div></div><div class="box box-blue" style="margin-top:.5rem">Tip: If a teammate is absent, one person may hold two roles.</div>', champs:{c:'Level 1: Partner Whisper',h:'Ask team',a:'Review duties',m:'Stay at table',p:'Everyone knows role'} },
+
+  { title:'Station Rotation 1', timer:1800, header:'<h2>Station Rotation 1 (30:00)</h2>', body:'<div class="station-grid"><div class="station-card" style="border-color:var(--blue)"><h3 style="color:var(--blue)">Station 1: Build BaseBot</h3><ul><li><b>Teams:</b> 1 & 2</li><li><b>Task:</b> Build chassis to Step <b>10</b>. <i>Insert image/diagram here.</i></li><li><b>Roles:</b> Builder leads, Parts finds, QC verifies, Scribe logs.</li></ul></div><div class="station-card" style="border-color:var(--amber)"><h3 style="color:var(--amber)">Station 2: Kit Inventory</h3><ul><li><b>Teams:</b> 3 & 4</li><li><b>Task:</b> Check parts with inventory sheet.</li><li><b>Roles:</b> Scribe checks list, Parts organizes, Builder & QC count pieces.</li></ul></div><div class="station-card" style="border-color:var(--green)"><h3 style="color:var(--green)">Station 3: Team Planning</h3><ul><li><b>Team:</b> 5</li><li><b>Task:</b> Read Sumo Bot rules; sketch design ideas.</li><li><b>Roles:</b> Scribe notes; all members sketch/talk.</li></ul></div></div>', champs:{c:'Level 2: Team Talk',h:'Ask 3 then me',a:'Work your role',m:'Stay at station',p:'All participate'} },
+
+  { title:'Plan for Periods 5–7 — Use Bots (No Building)', timer:120, header:'<h2>Plan for Periods 5–7 — Use Bots (No Building)</h2>', body:'<div class="station-grid"><div class="station-card" style="border-color:#1e3a8a"><h3 style="color:#1e3a8a">A. Programming & Driver Challenge</h3><ul><li>Use the prebuilt bot to complete <b>Line Follow</b> or <b>Square Drive</b></li><li><b>Coder/Driver</b> adjusts code & drives safely</li><li><b>Navigator</b> reads goals & checks steps</li><li><b>Reporter</b> records best time + changes</li></ul></div><div class="station-card" style="border-color:#d97706"><h3 style="color:#d97706">B. Debug & Calibration</h3><ul><li>Verify ports, rename devices, test motors/sensors</li><li><b>Builder</b> manages cables & stability (no new build)</li><li><b>Coder/Driver</b> calibrates sensors (gyro/color)</li><li><b>Reporter</b> note fixes & settings</li></ul></div><div class="station-card" style="border-color:#047857"><h3 style="color:#047857">C. Strategy & Documentation</h3><ul><li>Plan improvements for tomorrow\'s build time</li><li>Sketch attachments or gear ratios to try</li><li>Write a 2‑sentence summary: <em>What worked / Next step</em></li></ul></div></div><div class="box box-green" style="margin-top:.5rem"><b>Success Criteria:</b> one timing/score screenshot, a calibration note (ports/devices), and a next-step sketch or sentence.</div>', champs:{c:'Level 2: Team Talk',h:'Ask 3 then me',a:'Work your role',m:'Stay at station',p:'Artifacts ready to submit'} },
+
+  { title:'Exit Ticket', timer:180, header:'<h2>Exit Ticket (3:00)</h2>', body:'<div class="box box-red">In your notebook (or Canvas): One success our team had was ________ and one challenge was ________.</div>', champs:{c:'Level 0: Silent',h:'No questions',a:'Independent writing',m:'Stay seated',p:'Submit on time'} }
+];
+</script>
+<script>
+// ===== CORE APP =====
+const slideContainer=document.getElementById('slide-container');
+let slides=[];
+function buildSlides(){
+  slideContainer.innerHTML='';
+  lessonContent.forEach(d=>{
+    const s=document.createElement('div'); s.classList.add('slide'); s.dataset.title=d.title||'Untitled';
+    if(d.timer) s.dataset.timer=d.timer;
+    if(d.champs){ s.dataset.champsC=d.champs.c||'--'; s.dataset.champsH=d.champs.h||'--'; s.dataset.champsA=d.champs.a||'--'; s.dataset.champsM=d.champs.m||'--'; s.dataset.champsP=d.champs.p||'--'; }
+    const c=document.createElement('div'); c.classList.add('slide-content');
+    const h=document.createElement('div'); if(d.header) h.innerHTML=d.header;
+    const b=document.createElement('div'); b.classList.add('slide-body'); if(d.body) b.innerHTML=d.body;
+    c.appendChild(h); c.appendChild(b); s.appendChild(c); slideContainer.appendChild(s);
+  });
+  slides=[...document.querySelectorAll('.slide')];
+}
+
+const statusTitle=document.getElementById('status-title');
+const progressBar=document.getElementById('progress-bar');
+const homeBtn=document.getElementById('homeBtn');
+const prevBtn=document.getElementById('prevBtn');
+const nextBtn=document.getElementById('nextBtn');
+let current=0,timerInterval=null,remaining=0,running=false,confettiInterval=null;
+const champsC=document.getElementById('champs-c');
+const champsH=document.getElementById('champs-h');
+const champsA=document.getElementById('champs-a');
+const champsM=document.getElementById('champs-m');
+const champsP=document.getElementById('champs-p');
+const timerDisplay=document.getElementById('timerDisplay');
+const timerToggleBtn=document.getElementById('timerToggleBtn');
+const customMinutesInput=document.getElementById('customMinutesInput');
+const customSecondsInput=document.getElementById('customSecondsInput');
+const startPauseBtn=document.getElementById('startPauseBtn');
+const resetBtn=document.getElementById('resetBtn');
+let useSlideDuration=true;
+const timesUpOverlay=document.getElementById('timesUpOverlay');
+const timerFab=document.getElementById('timerFab');
+
+// Roster + Names
+const periodSelect=document.getElementById('periodSelect');
+const nameInput=document.getElementById('nameInput');
+const addNameBtn=document.getElementById('addNameBtn');
+const pickNameBtn=document.getElementById('pickNameBtn');
+const pickedName=document.getElementById('pickedName');
+const manageRosterBtn=document.getElementById('manageRosterBtn');
+const rosterBackdrop=document.getElementById('rosterBackdrop');
+const rosterManager=document.getElementById('rosterManager');
+const closeRosterBtn=document.getElementById('closeRosterBtn');
+const rosterList=document.getElementById('rosterList');
+const removeSelectedBtn=document.getElementById('removeSelectedBtn');
+const clearAllBtn=document.getElementById('clearAllBtn');
+
+// Role Cards Modal
+const rolesModal=document.getElementById('rolesModal');
+const openRolesBtn=document.getElementById('openRolesBtn');
+const closeRoles=document.getElementById('closeRoles');
+const roleCardsContainer=document.getElementById('roleCardsContainer');
+const printRolesBtn=document.getElementById('printRolesBtn');
+
+let studentNames=[]; let namesToPickFrom=[]; let alreadyPickedNames=[]; let lastClickedIndex=-1;
+function saveRoster(){ localStorage.setItem(`roster_p${periodSelect.value}`, JSON.stringify(studentNames)); }
+function loadRoster(){ const saved=localStorage.getItem(`roster_p${periodSelect.value}`); studentNames=saved?JSON.parse(saved):[]; initializeNamePicker(); }
+function initializeNamePicker(){ namesToPickFrom=[...studentNames]; alreadyPickedNames=[]; renderRoster(); }
+function renderRoster(){ rosterList.innerHTML=''; studentNames.forEach(n=>{ const li=document.createElement('li'); li.textContent=n; rosterList.appendChild(li); }); }
+function addName(){ const name=nameInput.value.trim(); if(name && !studentNames.includes(name)){ studentNames.push(name); if(!alreadyPickedNames.includes(name)) namesToPickFrom.push(name); nameInput.value=''; nameInput.focus(); renderRoster(); saveRoster(); } }
+
+function pickName(){
+  if(studentNames.length===0){ pickedName.textContent='Add names!'; return; }
+  document.getElementById('spinner').style.display='block';
+  document.getElementById('winner-display').style.display='none';
+  document.getElementById('animation-overlay').classList.add('visible');
+  if(confettiInterval) clearInterval(confettiInterval);
+  setTimeout(()=>{
+    if(namesToPickFrom.length===0){ namesToPickFrom=[...studentNames]; alreadyPickedNames=[]; }
+    const idx=Math.floor(Math.random()*namesToPickFrom.length);
+    const winner=namesToPickFrom[idx];
+    namesToPickFrom.splice(idx,1); alreadyPickedNames.push(winner);
+    pickedName.textContent=winner; document.getElementById('winner-display').textContent=winner;
+    document.getElementById('spinner').style.display='none'; document.getElementById('winner-display').style.display='block';
+    confettiInterval=setInterval(launchConfetti,500);
+    setTimeout(()=>{ document.getElementById('animation-overlay').classList.remove('visible'); clearInterval(confettiInterval); },3000);
+  },1600);
+}
+function launchConfetti(){ const colors=['#f44336','#e91e63','#9c27b0','#673ab7','#3f51b5','#2196f3','#03a9f4','#00bcd4','#009688','#4caf50','#8bc34a','#cddc39','#ffeb3b','#ffc107','#ff9800','#ff5722']; for(let i=0;i<30;i++){ const c=document.createElement('div'); c.classList.add('confetti'); const rect=Math.random()>0.5; c.style.width=rect?'6px':'10px'; c.style.height=rect?'15px':'10px'; c.style.left=Math.random()*100+'vw'; c.style.animationDuration=(Math.random()*3+2)+'s'; c.style.backgroundColor=colors[Math.floor(Math.random()*colors.length)]; c.style.setProperty('--x',(Math.random()*200-100)+'px'); c.addEventListener('animationend',()=>c.remove()); document.getElementById('confetti-container').appendChild(c); } }
+
+// Roster selection
+rosterList.addEventListener('click', (e)=>{ if(e.target.tagName!=='LI') return; const items=[...rosterList.children]; const idx=items.indexOf(e.target); if(!e.ctrlKey && !e.metaKey && !e.shiftKey){ items.forEach(li=>li.classList.remove('selected')); e.target.classList.add('selected'); } else if(e.shiftKey && lastClickedIndex!==-1){ const [s,en]=[Math.min(lastClickedIndex,idx),Math.max(lastClickedIndex,idx)]; items.forEach(li=>li.classList.remove('selected')); for(let i=s;i<=en;i++){ items[i].classList.add('selected'); } } else { e.target.classList.toggle('selected'); } lastClickedIndex=idx; });
+function removeSelectedNames(){ const selected=[...rosterList.querySelectorAll('.selected')]; const rm=selected.map(i=>i.textContent); studentNames=studentNames.filter(n=>!rm.includes(n)); namesToPickFrom=namesToPickFrom.filter(n=>!rm.includes(n)); alreadyPickedNames=alreadyPickedNames.filter(n=>!rm.includes(n)); renderRoster(); saveRoster(); }
+function clearAllNames(){ studentNames=[]; namesToPickFrom=[]; alreadyPickedNames=[]; renderRoster(); saveRoster(); }
+removeSelectedBtn.addEventListener('click',removeSelectedNames);
+clearAllBtn.addEventListener('click',clearAllNames);
+function openRoster(){ rosterManager.classList.add('open'); rosterBackdrop.classList.add('open'); }
+function closeRoster(){ rosterManager.classList.remove('open'); rosterBackdrop.classList.remove('open'); }
+manageRosterBtn.addEventListener('click',()=>{ (rosterManager.classList.contains('open')?closeRoster:openRoster)() });
+closeRosterBtn.addEventListener('click',closeRoster);
+rosterBackdrop.addEventListener('click',closeRoster);
+
+// ✅ FIX: wire up roster entry and picker
+addNameBtn.addEventListener('click', addName);
+nameInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); addName(); }});
+pickNameBtn.addEventListener('click', pickName);
+periodSelect.addEventListener('change', loadRoster);
+
+// CHAMPS + slides
+function updateChamps(slide){ champsC.textContent=slide.dataset.champsC||'--'; champsH.textContent=slide.dataset.champsH||'--'; champsA.textContent=slide.dataset.champsA||'--'; champsM.textContent=slide.dataset.champsM||'--'; champsP.textContent=slide.dataset.champsP||'--'; }
+function show(idx){ if(!slides.length) return; const n=Math.max(0,Math.min(idx,slides.length-1)); slides.forEach((s,i)=>s.classList.toggle('active',i===n)); current=n; const s=slides[current]; statusTitle.textContent=`${current+1}/${slides.length} - ${s.dataset.title||'Slide'}`; progressBar.style.width=`${(current+1)/slides.length*100}%`; updateChamps(s); prevBtn.disabled=(current===0); nextBtn.disabled=(current===slides.length-1); resetTimer(); }
+
+// Timer
+function updateDisplay(){ const m=Math.floor(remaining/60); const sec=(remaining%60).toString().padStart(2,'0'); const t=`${m}:${sec}`; timerDisplay.textContent=t; timerFab.textContent=t; if(remaining>0){ timerFab.classList.add('active'); } else { timerFab.classList.remove('active','warn','ending'); } if(remaining<=10 && remaining>0){ timerFab.classList.add('warn'); } else { timerFab.classList.remove('warn'); } if(remaining<=3 && remaining>0){ timerFab.classList.add('ending'); } else { timerFab.classList.remove('ending'); } }
+function tick(){ if(!running) return; remaining--; updateDisplay(); if(remaining<=0){ stopTimer(true); } }
+function startTimer(){ if(remaining>0 && !running){ running=true; startPauseBtn.textContent='Pause'; timerInterval=setInterval(tick,1000); } }
+function stopTimer(ended=false){ running=false; clearInterval(timerInterval); startPauseBtn.textContent='Start'; timerFab.classList.remove('warn','ending'); if(ended){ timesUpOverlay.classList.add('visible'); setTimeout(()=>{ timesUpOverlay.classList.remove('visible'); },2400); } }
+function toggleTimer(){ if(running){ running=false; clearInterval(timerInterval); startPauseBtn.textContent='Resume'; } else if(remaining>0){ startTimer(); } }
+function resetTimer(){ stopTimer(); let t=0; if(slides.length>0 && useSlideDuration){ t=slides[current] && slides[current].dataset.timer?parseInt(slides[current].dataset.timer,10):0; } else { const m=parseInt(customMinutesInput.value,10)||0; const s=parseInt(customSecondsInput.value,10)||0; t=(m*60)+s; } remaining=t; updateDisplay(); }
+
+homeBtn.onclick=()=>show(0);
+prevBtn.onclick=()=>show(current-1);
+nextBtn.onclick=()=>show(current+1);
+startPauseBtn.onclick=toggleTimer;
+resetBtn.onclick=resetTimer;
+timerToggleBtn.onclick=()=>{ useSlideDuration=!useSlideDuration; timerToggleBtn.textContent=useSlideDuration?'Slide Time':'Custom'; document.querySelectorAll('.time-input').forEach(el=>el.style.display=useSlideDuration?'none':'inline-block'); resetTimer(); };
+[customMinutesInput,customSecondsInput].forEach(i=>i.onchange=()=>{ if(!useSlideDuration) resetTimer(); });
+
+// Keyboard nav (ignore when typing in inputs)
+document.onkeydown=e=>{ const f=document.activeElement; if(f && f.closest('.control-group')) return; if(e.key==='ArrowLeft') prevBtn.click(); if(e.key==='ArrowRight') nextBtn.click(); if(e.key==='Home') homeBtn.click(); };
+
+// Click-to-advance zones on the slide frame
+const zoneLeft=document.getElementById('zoneLeft');
+const zoneRight=document.getElementById('zoneRight');
+zoneLeft.addEventListener('click',()=>prevBtn.click());
+zoneRight.addEventListener('click',()=>nextBtn.click());
+
+// Times-up LEDs setup
+(function(){ const b=document.querySelector('.stop-sign-border'); const n=16; for(let i=0;i<n;i++){ const led=document.createElement('div'); led.className='led'; const a=(i/n)*2*Math.PI; const x=50+47*Math.cos(a); const y=50+47*Math.sin(a); led.style.left=x+'%'; led.style.top=y+'%'; led.style.transform='translate(-50%,-50%)'; led.style.animationDelay=(i/n)*1.6+'s'; b.appendChild(led);} })();
+
+// Role cards modal render + print
+function renderRoleCards(){ roleCardsContainer.innerHTML=''; ROLE_DEFS.forEach(r=>{ const card=document.createElement('div'); card.className='role-card'; card.innerHTML=`<h3 style="display:flex;align-items:center;gap:.5rem"><span style=\"width:1rem;height:1rem;border-radius:999px;background:${r.color};display:inline-block\"></span>${r.key}</h3><p style="color:var(--muted);margin:.25rem 0 .5rem">Duties & helpful language</p><div><b>Duties</b><ul>${r.duties.map(d=>`<li>${d}</li>`).join('')}</ul></div><div style="margin-top:.5rem"><b>What to say</b>${r.says.map(s=>`<code class='frame'>${s}</code>`).join('')}</div>`; roleCardsContainer.appendChild(card); }); }
+openRolesBtn.addEventListener('click',()=>{ renderRoleCards(); rolesModal.classList.add('open'); rolesModal.setAttribute('aria-hidden','false'); });
+closeRoles.addEventListener('click',()=>{ rolesModal.classList.remove('open'); rolesModal.setAttribute('aria-hidden','true'); });
+rolesModal.addEventListener('click',e=>{ if(e.target===rolesModal){ rolesModal.classList.remove('open'); rolesModal.setAttribute('aria-hidden','true'); } });
+if(printRolesBtn){ printRolesBtn.addEventListener('click',()=>window.print()); }
+
+// Ensure overlays closed on load
+['rolesModal','rosterManager','rosterBackdrop','animation-overlay','timesUpOverlay'].forEach(id=>{ const el=document.getElementById(id); if(!el) return; el.classList.remove('open'); el.classList.remove('visible'); });
+
+// INIT
+buildSlides();
+loadRoster();
+document.querySelectorAll('.time-input').forEach(el=>el.style.display='none');
+show(0);
+</script>
+</body>
+</html>
